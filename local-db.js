@@ -275,7 +275,10 @@ class LocalBatch {
   set(ref,data,options){ this.ops.push(()=>ref.set(data,options)); return this; }
   update(ref,data){ this.ops.push(()=>ref.update(data)); return this; }
   delete(ref){ this.ops.push(()=>ref.delete()); return this; }
-  async commit(){ for(const op of this.ops) await op(); }
+  async commit(){
+    // تنفيذ على دفعات متوازية (10 في المرة) بدل الانتظار المتسلسل
+    for (let i = 0; i < this.ops.length; i += 10) await Promise.all(this.ops.slice(i, i + 10).map(op => op()));
+  }
 }
 const db = {
   collection(name){ return new LocalCollection(name); },

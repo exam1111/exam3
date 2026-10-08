@@ -11,7 +11,37 @@ let rctx = {
   answerKeys: {}, // questionId -> answerKey data
   attempts: [],
   violationsByAttempt: {}, // attemptId -> [violation, ...] مرتّبة زمنيًا
+  answersByAttempt: {}, // attemptId -> { questionId -> answerData(+id) } (تُحمَّل مرة واحدة وتُحدَّث في الذاكرة)
+  questionsById: new Map(),
 };
+
+/** يشغّل المهام بالتوازي بحد أقصى معيّن (بدل الانتظار المتسلسل) */
+async function runPool(tasks, limit = 8) {
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+    while (next < tasks.length) {
+      const i = next++;
+      await tasks[i]();
+    }
+  });
+  await Promise.all(workers);
+}
+
+/** تنزيل إجابات هذا الامتحان مرة واحدة فقط وتجميعها حسب المحاولة */
+async function loadAnswers() {
+  const snap = await db.collection(COLLECTIONS.ANSWERS).where("examId", "==", rctx.examId).get();
+  const map = {};
+  snap.docs.forEach((d) => {
+    const a = { id: d.id, ...d.data() };
+    (map[a.attemptId] = map[a.attemptId] || {})[a.questionId] = a;
+  });
+  rctx.answersByAttempt = map;
+}
+
+function stripId(obj) {
+  const { id, ...rest } = obj;
+  return rest;
+}
 
 guardTeacherPage(async (teacher) => {
   const chip = document.getElementById("userChip");
@@ -35,16 +65,15 @@ guardTeacherPage(async (teacher) => {
     rctx.exam = examDoc.data();
     document.getElementById("examTitleHeader").textContent = `نتائج: ${rctx.exam.title}`;
 
-    const qSnap = await db.collection(COLLECTIONS.QUESTIONS).where("examId", "==", rctx.examId).orderBy("order").get();
+    const [qSnap, keysSnap] = await Promise.all([
+      db.collection(COLLECTIONS.QUESTIONS).where("examId", "==", rctx.examId).orderBy("order").get(),
+      db.collection(COLLECTIONS.ANSWER_KEYS).where("examId", "==", rctx.examId).get(), // للأستاذ صاحب الامتحان فقط عبر القواعد
+      loadAttempts(),
+      loadAnswers(),
+    ]);
     rctx.questions = qSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-    const keysSnap = await db
-      .collection(COLLECTIONS.ANSWER_KEYS)
-      .where("examId", "==", rctx.examId)
-      .get(); // القراءة مسموحة للأستاذ صاحب الامتحان فقط عبر القواعد
+    rctx.questionsById = new Map(rctx.questions.map((q) => [q.id, q]));
     keysSnap.forEach((d) => (rctx.answerKeys[d.id] = d.data()));
-
-    await loadAttempts();
 
     document.getElementById("autoGradeBtn").addEventListener("click", runAutoGrade);
     document.getElementById("backToListBtn").addEventListener("click", showListView);
@@ -149,28 +178,57 @@ function isCorrectObjective(question, answerValue) {
   return false;
 }
 
+/** يحسب مجموع المحاولة وحالتها من الإجابات الموجودة في الذاكرة (بدون أي طلب شبكة) */
+function computeAttemptScore(answersByQ) {
+  let total = 0;
+  let pendingEssay = 0;
+  rctx.questions.forEach((q) => {
+    const ans = answersByQ[q.id];
+    if (q.type === "essay") {
+      if (ans && typeof ans.teacherScore === "number") total += ans.teacherScore;
+      else pendingEssay += 1;
+    } else if (ans && typeof ans.autoScore === "number") {
+      total += ans.autoScore; // موضوعي بدون تصحيح بعد يُحتسب صفرًا مؤقتًا وليس "معلقًا"
+    }
+  });
+  return { total, status: pendingEssay === 0 ? "graded" : "submitted" };
+}
+
 async function runAutoGrade() {
   const btn = document.getElementById("autoGradeBtn");
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> جاري التصحيح...';
   try {
+    // تحديث واحد للبيانات (طلبان فقط) ثم كل الحساب في الذاكرة
+    await Promise.all([loadAttempts(), loadAnswers()]);
+
+    const writes = [];
     for (const attempt of rctx.attempts) {
       if (attempt.status === "in_progress") continue; // لا نصحح محاولة لم تُسلَّم بعد
-      const answersSnap = await db.collection(COLLECTIONS.ANSWERS).where("attemptId", "==", attempt.id).get();
-      const batch = db.batch();
-      let touched = false;
-      answersSnap.forEach((doc) => {
-        const answer = doc.data();
-        const question = rctx.questions.find((q) => q.id === answer.questionId);
+      const answersByQ = rctx.answersByAttempt[attempt.id] || {};
+
+      Object.values(answersByQ).forEach((answer) => {
+        const question = rctx.questionsById.get(answer.questionId);
         if (!question || question.type === "essay") return;
         const correct = isCorrectObjective(question, answer.answerValue);
-        batch.update(doc.ref, { autoScore: correct ? question.points : 0, isCorrect: correct });
-        touched = true;
+        const autoScore = correct ? question.points : 0;
+        if (answer.autoScore === autoScore && answer.isCorrect === correct) return; // لا تغيير → لا كتابة
+        answer.autoScore = autoScore;
+        answer.isCorrect = correct;
+        writes.push(() => db.collection(COLLECTIONS.ANSWERS).doc(answer.id).set(stripId(answer)));
       });
-      if (touched) await batch.commit();
-      await recomputeAttemptScore(attempt.id);
+
+      const { total, status } = computeAttemptScore(answersByQ);
+      if (attempt.totalScore !== total || attempt.status !== status) {
+        attempt.totalScore = total;
+        attempt.status = status;
+        writes.push(() => db.collection(COLLECTIONS.ATTEMPTS).doc(attempt.id).set(stripId(attempt)));
+      }
     }
-    await loadAttempts();
+
+    await runPool(writes, 8); // كتابات متوازية، كل واحدة طلب PUT واحد
+    renderStats();
+    renderAttemptsTable();
     showAlert(document.getElementById("alertBox"), "تم تصحيح جميع الأسئلة الموضوعية بنجاح.", "success");
   } catch (err) {
     console.error(err);
@@ -179,32 +237,6 @@ async function runAutoGrade() {
     btn.disabled = false;
     btn.textContent = "تصحيح تلقائي للأسئلة الموضوعية";
   }
-}
-
-async function recomputeAttemptScore(attemptId) {
-  const answersSnap = await db.collection(COLLECTIONS.ANSWERS).where("attemptId", "==", attemptId).get();
-  const answersByQ = {};
-  answersSnap.forEach((d) => (answersByQ[d.data().questionId] = d.data()));
-
-  let total = 0;
-  let pendingEssay = 0;
-  rctx.questions.forEach((q) => {
-    const ans = answersByQ[q.id];
-    if (q.type === "essay") {
-      if (ans && typeof ans.teacherScore === "number") total += ans.teacherScore;
-      else pendingEssay += 1;
-    } else {
-      if (ans && typeof ans.autoScore === "number") total += ans.autoScore;
-      else pendingEssay += 0; // موضوعي بدون تصحيح بعد يُحتسب صفرًا مؤقتًا وليس "معلقًا"
-    }
-  });
-
-  const attemptRef = db.collection(COLLECTIONS.ATTEMPTS).doc(attemptId);
-  const newStatus = pendingEssay === 0 ? "graded" : "submitted";
-  await attemptRef.update({
-    totalScore: total,
-    status: newStatus,
-  });
 }
 
 /* ---------------------- عرض تفاصيل محاولة طالب ---------------------- */
@@ -223,9 +255,7 @@ async function showDetailView(attemptId) {
     `دخل: ${formatDateTime(attempt.startedAt)} — سلّم: ${attempt.submittedAt ? formatDateTime(attempt.submittedAt) : "لم يسلّم بعد"} — مخالفات: ${violationTotal(attempt)}`;
   renderViolationLog(attempt);
 
-  const answersSnap = await db.collection(COLLECTIONS.ANSWERS).where("attemptId", "==", attemptId).get();
-  const answersByQ = {};
-  answersSnap.forEach((d) => (answersByQ[d.data().questionId] = { id: d.id, ...d.data() }));
+  const answersByQ = rctx.answersByAttempt[attemptId] || {};
 
   const container = document.getElementById("detailQuestions");
   container.innerHTML = "";
@@ -324,20 +354,32 @@ async function saveEssayScore(attemptId, question, existingAnswer) {
   input.value = score;
 
   const answerId = `${attemptId}_${question.id}`;
-  await db.collection(COLLECTIONS.ANSWERS).doc(answerId).set(
-    {
-      attemptId,
-      examId: rctx.examId,
-      questionId: question.id,
-      studentUid: existingAnswer?.studentUid || null,
-      answerValue: existingAnswer?.answerValue || "",
-      teacherScore: score,
-    },
-    { merge: true }
-  );
+  const attempt = rctx.attempts.find((a) => a.id === attemptId);
+  const answersByQ = (rctx.answersByAttempt[attemptId] = rctx.answersByAttempt[attemptId] || {});
+  const answer = {
+    ...(answersByQ[question.id] || {}),
+    id: answerId,
+    attemptId,
+    examId: rctx.examId,
+    questionId: question.id,
+    studentUid: existingAnswer?.studentUid || null,
+    answerValue: existingAnswer?.answerValue || "",
+    teacherScore: score,
+  };
+  answersByQ[question.id] = answer;
 
-  await recomputeAttemptScore(attemptId);
-  await loadAttempts();
+  const { total, status } = computeAttemptScore(answersByQ);
+  attempt.totalScore = total;
+  attempt.status = status;
+
+  // كتابتان متوازيتان فقط (PUT) بدون أي قراءة أو إعادة تحميل
+  await Promise.all([
+    db.collection(COLLECTIONS.ANSWERS).doc(answerId).set(stripId(answer)),
+    db.collection(COLLECTIONS.ATTEMPTS).doc(attemptId).set(stripId(attempt)),
+  ]);
+
+  renderStats();
+  renderAttemptsTable();
   showAlert(document.getElementById("alertBox"), "تم حفظ درجة السؤال المقالي.", "success");
   showDetailView(attemptId);
 }
