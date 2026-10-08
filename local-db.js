@@ -162,10 +162,11 @@ const _useFirebase = !_useRtdbEarly() && !!(window.FIREBASE_CONFIG && window.FIR
 /* Firebase Realtime Database via its REST API (no SDK needed). Each doc is stored as a JSON string. */
 const _rtdbBackend = {
   shared: true,
-  _url(path) { return String(window.FIREBASE_CONFIG.databaseURL).replace(/\/+$/, "") + "/" + path + ".json"; },
+  _url(path, token) { return String(window.FIREBASE_CONFIG.databaseURL).replace(/\/+$/, "") + "/" + path + ".json" + (token ? "?auth=" + encodeURIComponent(token) : ""); },
   async _req(path, opts) {
     let res;
-    try { res = await fetch(this._url(path), opts); }
+    const token = typeof getTeacherIdToken === "function" ? await getTeacherIdToken() : null;
+    try { res = await fetch(this._url(path, token), opts); }
     catch (e) { throw { code: "network", message: "تعذر الاتصال بالخادم. تأكد من الإنترنت." }; }
     if (!res.ok) {
       const t = await res.text().catch(() => "");

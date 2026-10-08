@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>فحص الربط مع Firebase</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .chk{list-style:none;padding:0;margin:0}
+  .chk li{padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;margin-bottom:8px;line-height:1.7}
+  .chk .ok{background:#eef8f2}.chk .bad{background:#fbeeec}.chk .wait{background:#f5f5f5}
+  .chk small{display:block;opacity:.8}
+  .ltr{direction:ltr;unicode-bidi:plaintext;word-break:break-all}
+</style>
+</head>
+<body>
+  <div class="center-page">
+    <div class="container-narrow">
+      <div class="card">
+        <h2>فحص الربط مع Firebase</h2>
+        <p class="muted">افتح هذه الصفحة من موقعك المنشور. احذفها بعد الانتهاء.</p>
+        <ul class="chk" id="results"></ul>
+
+        <h3 style="margin-top:22px">اختبار حساب الأستاذ</h3>
+        <div class="field"><label for="email">البريد</label><input type="text" id="email" autocomplete="username" /></div>
+        <div class="field"><label for="password">كلمة المرور</label><input type="password" id="password" autocomplete="current-password" /></div>
+        <button class="btn btn-primary btn-block" id="btn">فحص الحساب</button>
+        <ul class="chk" id="teacherOut" style="margin-top:12px"></ul>
+      </div>
+    </div>
+  </div>
+  <script src="config.js"></script>
+  <script>
+    const cfg = window.FIREBASE_CONFIG || {};
+    const dbUrl = String(cfg.databaseURL || "").replace(/\/+$/, "");
+    const authBase = window.FIREBASE_AUTH_BASE || "https://identitytoolkit.googleapis.com/v1";
+    const list = document.getElementById("results");
+    const tout = document.getElementById("teacherOut");
+    let keysOpen = false;
+
+    function row(box, state, text, detail) {
+      const li = document.createElement("li");
+      li.className = state;
+      li.innerHTML = (state === "ok" ? "✓ " : state === "bad" ? "✗ " : "… ") + text + (detail ? "<small></small>" : "");
+      if (detail) li.querySelector("small").textContent = detail;
+      box.appendChild(li);
+    }
+    async function get(url) {
+      try { const r = await fetch(url, { cache: "no-store" }); return { status: r.status, body: await r.json().catch(() => null) }; }
+      catch { return { status: 0 }; }
+    }
+    async function signIn(email, password) {
+      try {
+        const r = await fetch(authBase + "/accounts:signInWithPassword?key=" + encodeURIComponent(cfg.apiKey), {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, returnSecureToken: true }),
+        });
+        const d = await r.json().catch(() => ({}));
+        return { ok: r.ok, data: d, msg: (d.error && d.error.message) || "" };
+      } catch { return { ok: false, msg: "NETWORK" }; }
+    }
+
+    (async () => {
+      // 1) الإعدادات
+      row(list, dbUrl ? "ok" : "bad", "رابط قاعدة البيانات (databaseURL) موجود في config.js", dbUrl);
+      row(list, cfg.apiKey ? "ok" : "bad", "مفتاح الدخول (apiKey) موجود في config.js");
+      if (!dbUrl) return;
+
+      // 2) القاعدة تستجيب
+      const ex = await get(dbUrl + "/exams.json");
+      if (ex.status === 200) row(list, "ok", "قاعدة البيانات متصلة", "عدد الامتحانات المقروءة: " + (ex.body ? Object.keys(ex.body).length : 0));
+      else if (ex.status === 0) row(list, "bad", "تعذر الوصول إلى القاعدة", "تأكد من databaseURL ومن الإنترنت");
+      else row(list, "bad", "القاعدة ترفض قراءة الامتحانات (" + ex.status + ")", "انشر database.rules.json من Realtime Database ← Rules");
+
+      // 3) مفاتيح الإجابة محمية
+      const ak = await get(dbUrl + "/answerKeys.json");
+      if (ak.status === 401 || ak.status === 403) row(list, "ok", "مفاتيح الإجابة محمية عن الطلاب");
+      else if (ak.status === 200) { keysOpen = true; row(list, "bad", "مفاتيح الإجابة مكشوفة لأي شخص", "لم تُنشر القواعد الجديدة بعد: الصق database.rules.json في Rules واضغط Publish"); }
+      else row(list, "bad", "تعذّر فحص حماية مفاتيح الإجابة (" + ak.status + ")");
+
+      // 4) خدمة الدخول
+      if (cfg.apiKey) {
+        const p = await signIn("check-probe@example.invalid", "probe-password-1");
+        if (/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD/.test(p.msg)) row(list, "ok", "Firebase Authentication يعمل ومفتاح الدخول صحيح");
+        else if (/API_KEY_INVALID|API key not valid/i.test(p.msg)) row(list, "bad", "مفتاح الدخول (apiKey) غير صحيح", "انسخه من Project settings ← General ← Web API Key");
+        else if (/OPERATION_NOT_ALLOWED/.test(p.msg)) row(list, "bad", "طريقة Email/Password غير مفعّلة", "فعّلها من Authentication ← Sign-in method");
+        else if (p.msg === "NETWORK") row(list, "bad", "تعذر الاتصال بخدمة الدخول");
+        else row(list, "bad", "ردّ غير متوقع من خدمة الدخول", p.msg);
+      }
+    })();
+
+    document.getElementById("btn").addEventListener("click", async () => {
+      tout.innerHTML = "";
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      if (!email || !password) return row(tout, "bad", "اكتب البريد وكلمة المرور");
+      const r = await signIn(email, password);
+      if (!r.ok) {
+        if (/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD/.test(r.msg)) return row(tout, "bad", "البريد أو كلمة المرور غير صحيحة، أو الحساب غير موجود", "أنشئ المستخدم من Authentication ← Users ← Add user");
+        return row(tout, "bad", "فشل تسجيل الدخول", r.msg);
+      }
+      const uid = r.data.localId;
+      row(tout, "ok", "تسجيل الدخول نجح", "UID: " + uid);
+      if (keysOpen) return row(tout, "bad", "لا يمكن التأكد من صلاحية الحساب لأن القواعد الجديدة غير منشورة بعد", "انشرها ثم أعد الفحص. معرّف هذا الحساب: " + uid);
+      const ak = await get(dbUrl + "/answerKeys.json?auth=" + encodeURIComponent(r.data.idToken));
+      if (ak.status === 200) row(tout, "ok", "هذا الحساب يملك صلاحية الأستاذ في القواعد");
+      else row(tout, "bad", "الحساب سجّل الدخول لكنه ليس الأستاذ في القواعد", "ضع هذا المعرّف في database.rules.json مكان المعرّف القديم ثم انشر القواعد: " + uid);
+    });
+  </script>
+</body>
+</html>

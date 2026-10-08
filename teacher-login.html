@@ -21,7 +21,7 @@
         <form id="loginForm">
           <div class="field">
             <label for="email">اسم المستخدم</label>
-            <input type="text" id="email" required autocomplete="username" placeholder="اسم المستخدم" />
+            <input type="text" id="email" required autocomplete="username" placeholder="البريد الإلكتروني" />
           </div>
           <div class="field">
             <label for="password">كلمة المرور</label>
@@ -33,8 +33,6 @@
         </form>
       </div>
 
-      <p id="serverStatus" class="muted small text-center mt-16">جاري فحص الخادم...</p>
-
       <div class="role-switch">
         <span class="muted">لست أستاذًا؟</span>
         <a href="student-login.html">دخول الطالب</a>
@@ -44,19 +42,12 @@
   <script src="config.js"></script>
   <script src="local-db.js"></script>
   <script src="utils.js"></script>
-  <script src="auth.js?v=2"></script>
+  <script src="auth.js"></script>
   <script>
     const alertBox = document.getElementById("alertBox");
     const form = document.getElementById("loginForm");
     const submitBtn = document.getElementById("submitBtn");
     const btnText = document.getElementById("btnText");
-
-    // حالة الخادم: إن لم يظهر «متصل» فالصفحة لا تعمل عبر server.js (npm start)
-    fetch("/api/status").then((r) => r.json()).then((d) => {
-      document.getElementById("serverStatus").textContent = d && d.ok ? "✓ الخادم متصل (إصدار " + d.version + ")" : "✗ الخادم غير متصل";
-    }).catch(() => {
-      document.getElementById("serverStatus").textContent = "✗ الخادم غير متصل — شغّل الموقع بالأمر: npm start";
-    });
 
     // إن كان الأستاذ مسجّل الدخول أصلًا، حوّله مباشرة إلى لوحة التحكم
     auth.onAuthStateChanged((user) => {

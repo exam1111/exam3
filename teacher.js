@@ -25,21 +25,10 @@ async function initDashboardPage() {
   try {
     const examsSnap = await db
       .collection(COLLECTIONS.EXAMS)
-      .where("teacherId", "==", currentTeacher.uid)
       .orderBy("createdAt", "desc")
       .get();
 
-    let exams = examsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-    // النظام له أستاذ واحد: إن لم نجد امتحانات بمعرّفه نعرض كل الامتحانات الموجودة مع تنبيه
-    if (exams.length === 0) {
-      const allSnap = await db.collection(COLLECTIONS.EXAMS).orderBy("createdAt", "desc").get();
-      if (!allSnap.empty) {
-        exams = allSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const owners = [...new Set(exams.map((e) => e.teacherId))].join("، ");
-        showAlert(alertBox, "تنبيه: الامتحانات مسجّلة بمعرّف أستاذ (" + owners + ") يختلف عن معرّف حسابك الحالي (" + currentTeacher.uid + "). تم عرضها كلها.", "warn");
-      }
-    }
+    const exams = examsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     // نجلب عدد المحاولات لكل امتحان لعرضه في الجدول ولحساب الإحصاءات الكلية
     const studentUids = new Set();
@@ -255,7 +244,7 @@ async function initCreateExamPage() {
     document.getElementById("pageTitle").textContent = "تعديل الامتحان وإدارة أسئلته";
     try {
       const doc = await db.collection(COLLECTIONS.EXAMS).doc(examCtx.examId).get();
-      if (!doc.exists || doc.data().teacherId !== currentTeacher.uid) {
+      if (!doc.exists) {
         showAlert(alertBox, "لا تملك صلاحية الوصول لهذا الامتحان.", "error");
         document.getElementById("examForm").classList.add("hidden");
         return;

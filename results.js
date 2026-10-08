@@ -28,7 +28,7 @@ guardTeacherPage(async (teacher) => {
 
   try {
     const examDoc = await db.collection(COLLECTIONS.EXAMS).doc(rctx.examId).get();
-    if (!examDoc.exists || examDoc.data().teacherId !== teacher.uid) {
+    if (!examDoc.exists) {
       showAlert(alertBox, "لا تملك صلاحية الوصول لنتائج هذا الامتحان.", "error");
       return;
     }

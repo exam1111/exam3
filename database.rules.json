@@ -1,6 +1,57 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true
+    ".read": false,
+    ".write": false,
+
+    "answerKeys": {
+      ".read": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      ".write": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      "$id": { ".validate": "newData.isString() && newData.val().length < 100000" }
+    },
+
+    "teachers": {
+      ".read": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      ".write": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      "$id": { ".validate": "newData.isString() && newData.val().length < 100000" }
+    },
+
+    "exams": {
+      ".read": true,
+      ".write": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      "$id": { ".validate": "newData.isString() && newData.val().length < 100000" }
+    },
+
+    "questions": {
+      ".read": true,
+      ".write": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      "$id": { ".validate": "newData.isString() && newData.val().length < 100000" }
+    },
+
+    "students": {
+      ".read": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      "$id": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.isString() && newData.val().length < 20000"
+      }
+    },
+
+    "attempts": {
+      ".read": true,
+      ".write": true,
+      "$id": { ".validate": "newData.isString() && newData.val().length < 50000" }
+    },
+
+    "answers": {
+      ".read": true,
+      ".write": true,
+      "$id": { ".validate": "newData.isString() && newData.val().length < 100000" }
+    },
+
+    "violations": {
+      ".read": "auth.uid === 'PmKWYrs2Dof2Wn9zQ0Rr1YtkohI2'",
+      ".write": true,
+      "$id": { ".validate": "newData.isString() && newData.val().length < 20000" }
+    }
   }
 }

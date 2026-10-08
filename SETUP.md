@@ -28,3 +28,15 @@
 1. من **Realtime Database ← Rules** الصق محتوى `database.rules.json` واضغط Publish.
 2. من تبويب **Data** انسخ رابط القاعدة أعلى الصفحة (يبدو مثل `https://xxxx-default-rtdb.firebaseio.com`) وضعه في `databaseURL` داخل `config.js`.
 3. عند وضع `databaseURL` يستخدم النظام Realtime Database تلقائيًا.
+
+---
+## حماية حساب الأستاذ (مهم)
+1. في Firebase: **Build ← Authentication ← Get started ← Sign-in method** فعّل **Email/Password**.
+2. تبويب **Users ← Add user** وأدخل بريدك وكلمة مرور قوية (هذا حساب الأستاذ الوحيد).
+3. **Project settings ← General** انسخ **Web API Key** وضعه في `apiKey` داخل `config.js`.
+4. ألصق محتوى `database.rules.json` في **Realtime Database ← Rules** واضغط Publish.
+5. **عطّل التسجيل الذاتي** حتى لا يُنشئ أحد حسابًا: Authentication ← Settings ← User actions ← أزل «Enable create (sign-up)».
+6. غيّر كلمة المرور القديمة المنشورة سابقًا في أي مكان (كانت ظاهرة في الكود وفي README).
+
+ما الذي تحمله القواعد: `answerKeys` (مفاتيح الإجابة) قراءةً وكتابةً للأستاذ فقط، وكتابة الامتحانات والأسئلة للأستاذ فقط. الطلاب يقرؤون الامتحانات ويكتبون محاولاتهم فقط.
+**حدّ معروف:** بيانات المحاولات والإجابات ما زالت قابلة للقراءة/الكتابة من الطلاب لأنهم لا يملكون حسابات؛ الحل الكامل يحتاج Cloud Functions.
