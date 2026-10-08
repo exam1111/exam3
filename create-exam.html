@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>إنشاء / تعديل امتحان — نظام الامتحانات</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="dash">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark" style="width:28px;height:28px;font-size:.8rem;">EN</span> نظام الامتحانات</div>
+      <nav>
+        <a href="teacher-dashboard.html">لوحة التحكم</a>
+        <a href="create-exam.html" class="active">إنشاء امتحان جديد</a>
+        <a href="#" id="accountLinkStub" style="opacity:.5;">إعدادات الحساب</a>
+        <a href="teacher-dashboard.html">رجوع</a>
+      </nav>
+    </aside>
+
+    <div class="dash-main">
+      <div class="dash-header">
+        <h2 class="mb-0" id="pageTitle">إنشاء امتحان جديد</h2>
+        <div class="user-chip" id="userChip">—</div>
+      </div>
+
+      <div class="dash-content">
+        <div id="alertBox" class="hidden"></div>
+
+        <div class="card">
+          <h3>بيانات الامتحان</h3>
+          <form id="examForm">
+            <div class="field">
+              <label for="title">اسم الامتحان</label>
+              <input type="text" id="title" required placeholder="مثال: امتحان الوحدة الثالثة" />
+            </div>
+            <div class="field">
+              <label for="description">وصف الامتحان</label>
+              <textarea id="description" placeholder="وصف مختصر يظهر للطالب (اختياري)"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="examCode">رمز الامتحان (Exam Code)</label>
+                <input type="text" id="examCode" class="exam-code" required placeholder="EX-2026-01" />
+              </div>
+              <div class="field">
+                <label for="status">حالة الامتحان</label>
+                <select id="status">
+                  <option value="draft">مسودة</option>
+                  <option value="published">منشور</option>
+                  <option value="closed">مغلق</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="startAt">تاريخ ووقت البداية</label>
+                <input type="datetime-local" id="startAt" required />
+              </div>
+              <div class="field">
+                <label for="endAt">تاريخ ووقت النهاية</label>
+                <input type="datetime-local" id="endAt" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="durationMinutes">مدة الامتحان (بالدقائق)</label>
+                <input type="number" id="durationMinutes" min="1" required placeholder="45" />
+              </div>
+              <div class="field">
+                <label for="questionCountDisplay">عدد الأسئلة</label>
+                <input type="text" id="questionCountDisplay" disabled value="0" />
+                <div class="hint">يُحسب تلقائيًا من الأسئلة المضافة أدناه لضمان تطابق البيانات.</div>
+              </div>
+            </div>
+            <div class="field">
+              <label style="display:flex; align-items:center; gap:8px; font-weight:400;">
+                <input type="checkbox" id="allowShowAnswers" style="width:auto;" />
+                السماح للطالب بمشاهدة درجته التفصيلية بعد التصحيح
+              </label>
+            </div>
+            <button type="submit" id="saveExamBtn" class="btn btn-primary">حفظ بيانات الامتحان</button>
+          </form>
+        </div>
+
+        <div class="card hidden" id="questionsSection">
+          <div class="flex-between">
+            <h3 class="mb-0">أسئلة الامتحان (<span id="qCount">0</span>)</h3>
+            <div class="flex gap-8" style="flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" id="bulkQuestionsBtn">✍️ كتابة عدة أسئلة دفعة واحدة</button>
+              <button class="btn btn-primary btn-sm" id="addQuestionBtn">+ إضافة سؤال</button>
+            </div>
+          </div>
+          <div id="questionsList" class="mt-16"></div>
+          <div class="empty-state hidden" id="noQuestions">لا توجد أسئلة بعد. ابدأ بإضافة سؤال جديد.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- محرّر السؤال -->
+  <div id="questionModal" class="modal-backdrop hidden">
+    <div class="modal" style="max-width:560px;">
+      <h3 id="qModalTitle">إضافة سؤال</h3>
+      <div id="qModalAlert" class="hidden"></div>
+      <div class="field">
+        <label>نوع السؤال</label>
+        <select id="qType">
+          <option value="multiple_choice">اختيار من متعدد (Multiple Choice)</option>
+          <option value="true_false">صح / خطأ (True/False)</option>
+          <option value="short_answer">إجابة قصيرة (Short Answer)</option>
+          <option value="essay">مقالي (Essay)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>نص السؤال (بالإنجليزية عادةً)</label>
+        <textarea id="qText" class="ltr" placeholder="Question text..."></textarea>
+      </div>
+
+      <div id="mcOptions" class="hidden">
+        <div class="opt-row"><span class="muted" style="width:20px;">A</span><input type="text" id="optA" class="ltr" placeholder="Option A" /></div>
+        <div class="opt-row"><span class="muted" style="width:20px;">B</span><input type="text" id="optB" class="ltr" placeholder="Option B" /></div>
+        <div class="opt-row"><span class="muted" style="width:20px;">C</span><input type="text" id="optC" class="ltr" placeholder="Option C" /></div>
+        <div class="opt-row"><span class="muted" style="width:20px;">D</span><input type="text" id="optD" class="ltr" placeholder="Option D" /></div>
+        <div class="field">
+          <label>الإجابة الصحيحة</label>
+          <select id="mcCorrect"><option value="a">A</option><option value="b">B</option><option value="c">C</option><option value="d">D</option></select>
+        </div>
+      </div>
+
+      <div id="tfOptions" class="hidden">
+        <div class="field">
+          <label>الإجابة الصحيحة</label>
+          <select id="tfCorrect"><option value="true">True</option><option value="false">False</option></select>
+        </div>
+      </div>
+
+      <div id="shortOptions" class="hidden">
+        <div class="field">
+          <label>الإجابات المقبولة (افصل بينها بفاصلة ,)</label>
+          <input type="text" id="acceptableAnswers" class="ltr" placeholder="answer1, answer2, answer 3" />
+          <div class="hint">سيتم قبول أي إجابة من الطالب تطابق إحدى هذه الإجابات (بدون حساسية لحالة الأحرف أو المسافات الزائدة).</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>الدرجة</label>
+        <input type="number" id="qPoints" min="0" step="0.5" value="1" />
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-outline" id="cancelQuestionBtn">إلغاء</button>
+        <button class="btn btn-primary" id="saveQuestionBtn">حفظ السؤال</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- كتابة الأسئلة دفعة واحدة -->
+  <div id="bulkModal" class="modal-backdrop hidden">
+    <div class="modal" style="max-width:720px; max-height:92vh; overflow:auto;">
+      <h3>كتابة الأسئلة دفعة واحدة</h3>
+      <div id="bulkAlert" class="hidden"></div>
+      <p class="small muted">اكتب كل سؤال في فقرة مستقلة، وافصل بين الأسئلة بسطر فارغ. يتم التعرّف على نوع السؤال تلقائيًا، وتظهر المعاينة أسفل الصندوق أثناء الكتابة.</p>
+      <details class="mt-8" style="margin-bottom:12px;">
+        <summary style="cursor:pointer; font-weight:600;">طريقة الكتابة</summary>
+        <div class="small mt-8" style="line-height:1.9;">
+          <div><strong>اختيار من متعدد:</strong> أربعة اختيارات A–D، وضع <span class="ltr">*</span> في نهاية الاختيار الصحيح (أو سطر <span class="ltr">Answer: B</span>).</div>
+          <div><strong>صح / خطأ:</strong> سطر <span class="ltr">TF: true</span> أو <span class="ltr">TF: false</span>.</div>
+          <div><strong>إجابة قصيرة:</strong> سطر <span class="ltr">Answer: went, Went</span> (الإجابات المقبولة مفصولة بفاصلة).</div>
+          <div><strong>مقالي / كتابة:</strong> سطر <span class="ltr">Essay</span>.</div>
+          <div><strong>الدرجة:</strong> سطر <span class="ltr">Points: 2</span> (اختياري، والافتراضي 1).</div>
+        </div>
+      </details>
+      <div class="field">
+        <textarea id="bulkText" class="ltr" style="min-height:240px; font-family:ui-monospace,Consolas,monospace;" placeholder="What is the capital of France?&#10;A) Berlin&#10;B) Paris *&#10;C) Madrid&#10;D) Rome"></textarea>
+      </div>
+      <div id="bulkPreview"></div>
+      <div class="actions">
+        <button class="btn btn-outline btn-sm" id="bulkSampleBtn" style="margin-inline-end:auto;">إدراج مثال</button>
+        <button class="btn btn-outline" id="bulkCancelBtn">إلغاء</button>
+        <button class="btn btn-primary" id="bulkAddBtn" disabled>إضافة الأسئلة</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">تأكيد</h3>
+      <p id="confirmMessage" class="small"></p>
+      <div class="actions">
+        <button class="btn btn-outline" id="confirmCancelBtn">إلغاء</button>
+        <button class="btn btn-danger" id="confirmOkBtn">حذف</button>
+      </div>
+    </div>
+  </div>
+  <script src="config.js"></script>
+  <script src="local-db.js"></script>
+  <script src="utils.js"></script>
+  <script src="auth.js?v=2"></script>
+  <script src="teacher.js"></script>
+</body>
+</html>

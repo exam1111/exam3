@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>دخول الأستاذ — نظام الامتحانات</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="center-page">
+    <div class="container-narrow">
+      <div class="login-hero">
+        <div class="mark">EN</div>
+        <h1>دخول الأستاذ</h1>
+        <p class="muted">لوحة تحكم إدارة الامتحانات</p>
+      </div>
+
+      <div class="card">
+        <div id="alertBox" class="hidden"></div>
+
+        <form id="loginForm">
+          <div class="field">
+            <label for="email">اسم المستخدم</label>
+            <input type="text" id="email" required autocomplete="username" placeholder="اسم المستخدم" />
+          </div>
+          <div class="field">
+            <label for="password">كلمة المرور</label>
+            <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••" />
+          </div>
+          <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
+            <span id="btnText">تسجيل الدخول</span>
+          </button>
+        </form>
+      </div>
+
+      <p id="serverStatus" class="muted small text-center mt-16">جاري فحص الخادم...</p>
+
+      <div class="role-switch">
+        <span class="muted">لست أستاذًا؟</span>
+        <a href="student-login.html">دخول الطالب</a>
+      </div>
+    </div>
+  </div>
+  <script src="config.js"></script>
+  <script src="local-db.js"></script>
+  <script src="utils.js"></script>
+  <script src="auth.js?v=2"></script>
+  <script>
+    const alertBox = document.getElementById("alertBox");
+    const form = document.getElementById("loginForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const btnText = document.getElementById("btnText");
+
+    // حالة الخادم: إن لم يظهر «متصل» فالصفحة لا تعمل عبر server.js (npm start)
+    fetch("/api/status").then((r) => r.json()).then((d) => {
+      document.getElementById("serverStatus").textContent = d && d.ok ? "✓ الخادم متصل (إصدار " + d.version + ")" : "✗ الخادم غير متصل";
+    }).catch(() => {
+      document.getElementById("serverStatus").textContent = "✗ الخادم غير متصل — شغّل الموقع بالأمر: npm start";
+    });
+
+    // إن كان الأستاذ مسجّل الدخول أصلًا، حوّله مباشرة إلى لوحة التحكم
+    auth.onAuthStateChanged((user) => {
+      if (user && !user.isAnonymous) {
+        window.location.href = "teacher-dashboard.html";
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearAlert(alertBox);
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        showAlert(alertBox, "يرجى إدخال اسم المستخدم وكلمة المرور.", "error");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> جاري التحقق...';
+
+      try {
+        await teacherLogin(email, password);
+        window.location.href = "teacher-dashboard.html";
+      } catch (err) {
+        console.error(err);
+        showAlert(alertBox, translateError(err), "error");
+        submitBtn.disabled = false;
+        btnText.textContent = "تسجيل الدخول";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>دخول الطالب — نظام الامتحانات</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="center-page">
+    <div class="container-narrow">
+      <div class="login-hero">
+        <div class="mark">EN</div>
+        <h1>دخول الطالب</h1>
+        <p class="muted">أدخل اسمك الرباعي ورمز الامتحان الذي زوّدك به الأستاذ</p>
+      </div>
+
+      <div class="card">
+        <div id="alertBox" class="hidden"></div>
+
+        <form id="joinForm">
+        <div class="rules-box" id="rulesBox">
+          <h3>⚠️ تعليمات مهمة قبل الدخول</h3>
+          <ul>
+            <li>أي <strong>خروج من صفحة الامتحان</strong> (تبديل التبويب أو التطبيق، تصغير المتصفح، فتح نافذة أخرى، إغلاق الصفحة أو تحديثها أو الرجوع منها) <strong>يُكتشف ويُسجَّل تلقائيًا كمحاولة غش</strong>، ويظهر للأستاذ مع وقت الخروج ومدة الغياب.</li>
+            <li>النسخ واللصق والنقر بالزر الأيمن ومحاولة فتح أدوات المطوّر تُسجَّل أيضًا.</li>
+            <li>لديك <strong>محاولة واحدة فقط</strong>. بعد تسليم الامتحان لا يمكنك الدخول إليه مرة أخرى من هذا الجهاز، <strong>حتى لو غيّرت الاسم</strong>، وأي محاولة لذلك تُسجَّل أيضًا.</li>
+            <li>عند انتهاء الوقت يُسلَّم الامتحان تلقائيًا.</li>
+          </ul>
+          <label class="consent">
+            <input type="checkbox" id="agreeRules" />
+            <span>قرأتُ التعليمات أعلاه وأوافق عليها</span>
+          </label>
+        </div>
+
+          <div class="field">
+            <label for="fullName">الاسم الرباعي</label>
+            <input type="text" id="fullName" required placeholder="مثال: أحمد محمد علي حسن" />
+            <div class="hint">يُستخدم اسمك لربط نتيجتك بك. تأكد من كتابته بدقة وكاملًا.</div>
+          </div>
+          <div class="field">
+            <label for="examCode">رمز الامتحان (Exam Code)</label>
+            <input type="text" id="examCode" class="exam-code" required placeholder="EX-2026-01" />
+          </div>
+          <button type="submit" id="submitBtn" class="btn btn-primary btn-block" disabled>
+            <span id="btnText">دخول الامتحان</span>
+          </button>
+        </form>
+      </div>
+
+      <p class="muted small mt-16 text-center">
+        تنبيه: الاسم الرباعي وحده ليس وسيلة تحقق قوية من الهوية — احرص على
+        عدم مشاركة رمز الامتحان مع غيرك.
+      </p>
+
+      <div class="role-switch">
+        <span class="muted">هل أنت الأستاذ؟</span>
+        <a href="teacher-login.html">دخول الأستاذ</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="duplicateModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>تنبيه</h3>
+      <p class="small">
+        يوجد طالب مسجّل مسبقًا بنفس الاسم في هذا الامتحان. إذا لم تكن قد دخلت
+        هذا الامتحان من قبل يمكنك المتابعة بأمان. إذا كنت قد دخلت مسبقًا، فلن
+        يُسمح لك بإنشاء محاولة ثانية.
+      </p>
+      <div class="actions">
+        <button class="btn btn-outline" id="cancelJoinBtn">إلغاء</button>
+        <button class="btn btn-primary" id="confirmJoinBtn">متابعة الدخول</button>
+      </div>
+    </div>
+  </div>
+  <script src="config.js"></script>
+  <script src="local-db.js"></script>
+  <script src="utils.js"></script>
+  <script src="auth.js?v=2"></script>
+  <script src="student.js"></script>
+</body>
+</html>

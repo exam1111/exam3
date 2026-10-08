@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>لوحة تحكم الأستاذ — نظام الامتحانات</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="dash">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark" style="width:28px;height:28px;font-size:.8rem;">EN</span> نظام الامتحانات</div>
+      <nav>
+        <a href="teacher-dashboard.html" class="active">لوحة التحكم</a>
+        <a href="create-exam.html">إنشاء امتحان جديد</a>
+        <a href="#" id="accountLink">إعدادات الحساب</a>
+        <a href="#" id="logoutLink">تسجيل الخروج</a>
+      </nav>
+    </aside>
+
+    <div class="dash-main">
+      <div class="dash-header">
+        <h2 class="mb-0">لوحة التحكم</h2>
+        <div class="user-chip" id="userChip">—</div>
+      </div>
+
+      <div class="dash-content">
+        <div id="alertBox" class="hidden"></div>
+
+        <div class="stat-grid" id="statGrid">
+          <div class="stat-card"><div class="num">—</div><div class="label">عدد الامتحانات</div></div>
+          <div class="stat-card"><div class="num">—</div><div class="label">امتحانات نشطة</div></div>
+          <div class="stat-card"><div class="num">—</div><div class="label">امتحانات منتهية</div></div>
+          <div class="stat-card"><div class="num">—</div><div class="label">عدد الطلاب</div></div>
+          <div class="stat-card"><div class="num">—</div><div class="label">عدد المحاولات</div></div>
+        </div>
+
+        <div class="card">
+          <div class="flex-between mb-0">
+            <h3 class="mb-0">قائمة الامتحانات</h3>
+            <a href="create-exam.html" class="btn btn-primary btn-sm">+ امتحان جديد</a>
+          </div>
+          <div class="table-wrap mt-16">
+            <table id="examsTable">
+              <thead>
+                <tr>
+                  <th>اسم الامتحان</th>
+                  <th>الحالة</th>
+                  <th>البداية</th>
+                  <th>النهاية</th>
+                  <th>المدة</th>
+                  <th>الأسئلة</th>
+                  <th>الطلاب</th>
+                  <th>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="examsTbody">
+                <tr><td colspan="8" class="muted text-center">جاري التحميل...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة تأكيد إغلاق/حذف الامتحان -->
+  <div id="confirmModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">تأكيد</h3>
+      <p id="confirmMessage" class="small"></p>
+      <div class="actions">
+        <button class="btn btn-outline" id="confirmCancelBtn">إلغاء</button>
+        <button class="btn btn-danger" id="confirmOkBtn">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة إعدادات الحساب -->
+  <div id="accountModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>إعدادات الحساب</h3>
+      <div id="accountAlert" class="hidden"></div>
+      <div class="field">
+        <label>اسم العرض</label>
+        <input type="text" id="displayNameInput" />
+      </div>
+      <button class="btn btn-outline btn-block" id="saveNameBtn">حفظ الاسم</button>
+
+      <hr style="margin:18px 0; border:none; border-top:1px solid var(--line);" />
+
+      <div class="field">
+        <label>كلمة المرور الحالية</label>
+        <input type="password" id="currentPasswordInput" autocomplete="current-password" />
+      </div>
+      <div class="field">
+        <label>كلمة المرور الجديدة</label>
+        <input type="password" id="newPasswordInput" autocomplete="new-password" />
+      </div>
+      <button class="btn btn-primary btn-block" id="savePasswordBtn">تغيير كلمة المرور</button>
+
+      <div class="actions">
+        <button class="btn btn-link" id="closeAccountModal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+  <script src="config.js"></script>
+  <script src="local-db.js"></script>
+  <script src="utils.js"></script>
+  <script src="auth.js?v=2"></script>
+  <script src="teacher.js"></script>
+</body>
+</html>

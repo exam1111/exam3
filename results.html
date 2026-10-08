@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>نتائج الامتحان — نظام الامتحانات</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="dash">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark" style="width:28px;height:28px;font-size:.8rem;">EN</span> نظام الامتحانات</div>
+      <nav>
+        <a href="teacher-dashboard.html">لوحة التحكم</a>
+        <a href="create-exam.html">إنشاء امتحان جديد</a>
+        <a href="teacher-dashboard.html">رجوع للوحة التحكم</a>
+      </nav>
+    </aside>
+
+    <div class="dash-main">
+      <div class="dash-header">
+        <h2 class="mb-0" id="examTitleHeader">نتائج الامتحان</h2>
+        <div class="user-chip" id="userChip">—</div>
+      </div>
+
+      <div class="dash-content">
+        <div id="alertBox" class="hidden"></div>
+
+        <div id="listView">
+          <div class="stat-grid" id="resultsStatGrid">
+            <div class="stat-card"><div class="num">—</div><div class="label">عدد المحاولات</div></div>
+            <div class="stat-card"><div class="num">—</div><div class="label">تم التصحيح</div></div>
+            <div class="stat-card"><div class="num">—</div><div class="label">بانتظار التصحيح</div></div>
+            <div class="stat-card"><div class="num">—</div><div class="label">متوسط الدرجات %</div></div>
+          </div>
+
+          <div class="card">
+            <div class="flex-between">
+              <h3 class="mb-0">قائمة الطلاب</h3>
+              <button class="btn btn-primary btn-sm" id="autoGradeBtn">تصحيح تلقائي للأسئلة الموضوعية</button>
+            </div>
+            <div class="table-wrap mt-16">
+              <table>
+                <thead>
+                  <tr>
+                    <th>اسم الطالب</th>
+                    <th>وقت الدخول</th>
+                    <th>وقت التسليم</th>
+                    <th>الدرجة</th>
+                    <th>المخالفات</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody id="attemptsTbody">
+                  <tr><td colspan="6" class="muted text-center">جاري التحميل...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="detailView" class="hidden">
+          <button class="btn btn-outline btn-sm mb-0" id="backToListBtn">‹ رجوع لقائمة الطلاب</button>
+          <div class="card mt-16">
+            <h3 id="detailStudentName">—</h3>
+            <div id="detailMeta" class="muted small mb-0"></div>
+          </div>
+          <div id="detailViolations" class="mt-16"></div>
+          <div id="detailQuestions" class="mt-16"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="config.js"></script>
+  <script src="local-db.js"></script>
+  <script src="utils.js"></script>
+  <script src="auth.js?v=2"></script>
+  <script src="results.js"></script>
+</body>
+</html>

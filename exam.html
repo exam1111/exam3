@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>الامتحان جارٍ — نظام الامتحانات</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="loadingState" class="center-page">
+    <div class="text-center muted"><span class="spinner" style="border-top-color:var(--ink); border-color:rgba(23,35,61,.25);"></span> جاري تحميل الامتحان...</div>
+  </div>
+
+  <div id="blockedState" class="center-page hidden">
+    <div class="container-narrow card text-center">
+      <h2 id="blockedTitle">تعذّر الدخول للامتحان</h2>
+      <p id="blockedMessage" class="muted"></p>
+      <a href="student-login.html" class="btn btn-outline mt-16">العودة لصفحة الدخول</a>
+    </div>
+  </div>
+
+  <div id="examShell" class="exam-shell hidden">
+    <div class="exam-topbar">
+      <div>
+        <strong id="examTitle">—</strong>
+        <div class="muted small"><span id="examStudentName"></span><span id="violationBadge" class="viol-badge zero">مخالفات مسجَّلة: 0</span></div>
+      </div>
+      <div class="timer" id="timerDisplay">--:--</div>
+    </div>
+
+    <div class="exam-notice">
+      ⚠️ تنبيه: أي خروج من صفحة الامتحان (تبديل التبويب أو التطبيق، تصغير المتصفح، إغلاق الصفحة أو تحديثها) يُسجَّل تلقائيًا كمحاولة غش ويظهر للأستاذ.
+    </div>
+
+    <div id="questionsContainer"></div>
+
+    <div class="card text-center">
+      <button id="submitExamBtn" class="btn btn-primary btn-block">تسليم الامتحان</button>
+      <p class="muted small mt-8 mb-0">تأكد من الإجابة على جميع الأسئلة قبل التسليم — لا يمكن التراجع بعد التسليم.</p>
+    </div>
+  </div>
+
+  <div id="submittedState" class="center-page hidden">
+    <div class="container-narrow card text-center">
+      <h2>تم تسليم الامتحان بنجاح</h2>
+      <p class="muted" id="submittedMessage">شكرًا لك، سيقوم الأستاذ بمراجعة إجاباتك.</p>
+      <a href="index.html" class="btn btn-outline mt-16">العودة للصفحة الرئيسية</a>
+    </div>
+  </div>
+
+  <div id="confirmSubmitModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>تأكيد التسليم</h3>
+      <p class="small">هل أنت متأكد من رغبتك في تسليم الامتحان الآن؟ لن تتمكن من تعديل إجاباتك بعد ذلك.</p>
+      <div class="actions">
+        <button class="btn btn-outline" id="cancelSubmitBtn">تراجع</button>
+        <button class="btn btn-primary" id="confirmSubmitBtn">نعم، تسليم الامتحان</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="violationToast" class="violation-toast hidden"></div>
+  <script src="config.js"></script>
+  <script src="local-db.js"></script>
+  <script src="utils.js"></script>
+  <script src="auth.js?v=2"></script>
+  <script src="exam.js"></script>
+</body>
+</html>
